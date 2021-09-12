@@ -1,4 +1,4 @@
-module ex0(clk, number, control, LEDG);
+module ex0(clk, number, control, LEDG, LEDR);
 
 input [4:0]number;
 input control, clk;
@@ -7,9 +7,13 @@ wire change;
 wire cancel;
 wire enter;
 
-output reg[7:0] LEDG;
+wire [17:0] s;
 
-reg[7:0] out = 0;
+output reg[7:0] LEDG;
+output reg[17:0] LEDR;
+
+reg[7:0] outg = 0;
+reg[17:0] outr = 0;
 
 parameter 
 	select_al = 0,
@@ -21,7 +25,10 @@ parameter
 	
 reg[2:0] state, next_state; 
 	
-virtual_input VI (.number(number), .control(control), .button0(change), .button1(enter), .button2(cancel));
+virtual_input VI (.number(number), .control(control), .button0(change), .button1(enter), .button2(cancel),
+	.switch0(s[0]), .switch1(s[1]), .switch2(s[2]), .switch3(s[3]), .switch4(s[4]), .switch5(s[5]),
+	.switch6(s[6]), .switch7(s[7]), .switch8(s[8]), .switch9(s[9]), .switch10(s[10]), .switch11(s[11]),
+	.switch12(s[12]), .switch13(s[13]), .switch14(s[14]), .switch15(s[15]), .switch16(s[16]), .switch17(s[17]));
 
 always @(*)
 begin
@@ -102,36 +109,29 @@ always @(posedge clk or posedge cancel)
 begin
 	if (cancel)
 	begin
-		out <= 0;
+		outg <= 0;
+		s <= 0;
 	end
 	else
 	begin
+		outr <= s;
+		
 		if (state == select_al)
-			out <= 8'b10000000;
+			outg <= 8'b10000000;
 		else if (state == select_am)
-			out <= 8'b01000000;
+			outg <= 8'b01000000;
 		else if (state == select_bl)
-			out <= 8'b00100000;
+			outg <= 8'b00100000;
 		else if (state == select_bm)
-			out <= 8'b00010000;
+			outg <= 8'b00010000;
 		else if (state == result_l)
-			out <= 8'b00000010;
+			outg <= 8'b00000010;
 		else if (state == result_m)
-			out <= 8'b00000001;
+			outg <= 8'b00000001;
 	end
 	
-	LEDG <= out;
+	LEDR <= outr;
+	LEDG <= outg;
 end
-
-//always @(posedge change)
-//begin
-//	if(change)
-//	begin
-//		if(~s0) out = out + 1;
-//		else if (s0) out = out - 1;
-//	end
-//	
-//	LEDG <= out;
-//end
 
 endmodule
