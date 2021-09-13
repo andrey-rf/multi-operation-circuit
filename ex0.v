@@ -14,6 +14,13 @@ output reg[17:0] LEDR;
 
 reg[7:0] outg = 0;
 reg[17:0] outr = 0;
+reg[31:0] a = 0;
+reg[31:0] b = 0;
+reg[31:0] result = 0;
+
+wire[1:0] op;
+
+assign op = s[1:0];
 
 parameter 
 	select_al = 0,
@@ -23,7 +30,8 @@ parameter
 	result_l = 4,
 	result_m = 5;
 	
-reg[2:0] state, next_state; 
+reg[2:0] state;
+reg[2:0] next_state = select_al; 
 	
 virtual_input VI (.number(number), .control(control), .button0(change), .button1(enter), .button2(cancel),
 	.switch0(s[0]), .switch1(s[1]), .switch2(s[2]), .switch3(s[3]), .switch4(s[4]), .switch5(s[5]),
@@ -75,7 +83,7 @@ begin
 		select_bm:
 			if (change)
 			begin
-				next_state <= select_al;
+				next_state <= select_bm;
 			end
 			else if (enter)
 			begin
@@ -105,29 +113,95 @@ begin
 	end
 end
 
-always @(posedge clk or posedge cancel)
+always @(posedge clk or posedge cancel or posedge change or posedge enter)
 begin
 	if (cancel)
 	begin
 		outg <= 0;
-		s <= 0;
 	end
 	else
 	begin
-		outr <= s;
-		
-		if (state == select_al)
-			outg <= 8'b10000000;
-		else if (state == select_am)
-			outg <= 8'b01000000;
-		else if (state == select_bl)
-			outg <= 8'b00100000;
-		else if (state == select_bm)
-			outg <= 8'b00010000;
-		else if (state == result_l)
-			outg <= 8'b00000010;
-		else if (state == result_m)
-			outg <= 8'b00000001;
+		case (state)
+			select_al:
+			begin
+				outr <= s;
+				outg <= 8'b10000000;
+				
+				if (change)
+					a[15:0] <= s[17:2];
+				else if (enter)
+					case (op)
+					0: result <= a + b;
+					1: result <= a - b;
+					2: result <= a | b;
+					3: result <= a & b;
+					endcase
+			end
+			
+			select_am:
+			begin
+				outr <= s;
+				outg <= 8'b01000000;
+				
+				if (change)
+					a[31:16] <= s[17:2];
+				else if (enter)
+					case (op)
+					0: result <= a + b;
+					1: result <= a - b;
+					2: result <= a | b;
+					3: result <= a & b;
+					endcase
+			end
+			
+			select_bl:
+			begin
+				outr <= s;
+				outg <= 8'b00100000;
+				
+				if (change)
+					b[15:0] <= s[17:2];
+				else if (enter)
+					case (op)
+					0: result <= a + b;
+					1: result <= a - b;
+					2: result <= a | b;
+					3: result <= a & b;
+					endcase
+			end
+			
+			select_bm:
+			begin
+				outr <= s;
+				outg <= 8'b00010000;
+				
+				if (change)
+					b[31:16] <= s[17:2];
+				else if (enter)
+				begin
+					b[31:16] <= s[17:2];
+					
+					case (op)
+					0: result <= a + b;
+					1: result <= a - b;
+					2: result <= a | b;
+					3: result <= a & b;
+					endcase
+				end
+			end
+			
+			result_l:
+			begin
+				outr[17:2] <= result[15:0];
+				outg <= 8'b00000010;
+			end
+			
+			result_m:
+			begin
+				outr[17:2] <= result[31:16];
+				outg <= 8'b00000001;
+			end
+		endcase
 	end
 	
 	LEDR <= outr;
